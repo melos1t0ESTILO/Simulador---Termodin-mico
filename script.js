@@ -28,9 +28,10 @@ const GAS_DATA = {
 // Gases ideales con Cp y Cv constantes (para procesos adiabáticos)
 // Cv = f/2 * R  y  Cp = Cv + R, según los grados de libertad f
 const ADIABATIC_GAS_DATA = {
-  mono: { nombre: 'Monoatómico', Cv: 3 * R / 2, Cp: 5 * R / 2 },
-  di:   { nombre: 'Diatómico',   Cv: 5 * R / 2, Cp: 7 * R / 2 },
-  tri:  { nombre: 'Triatómico',  Cv: 7 * R / 2, Cp: 9 * R / 2 },
+  mono:  { nombre: 'Monoatómico', Cv: 3 * R / 2, Cp: 5 * R / 2 },
+  di:    { nombre: 'Diatómico',   Cv: 5 * R / 2, Cp: 7 * R / 2 },
+  tri:   { nombre: 'Triatómico',  Cv: 7 * R / 2, Cp: 9 * R / 2 },
+  otro:  { nombre: 'Otro (elegir gas específico)' }, // Cv/Cp se calculan dinámicamente a partir de GAS_DATA, evaluados en T1
 };
 
 // ===== FUNCIONES DE Cp, Cv E INTEGRALES =====
@@ -65,8 +66,62 @@ function CvMean(gas, T1, T2) {
 
 let lastResult = null;
 
+// Todos los campos de datos numéricos que el usuario llena para calcular
+const DATA_INPUT_IDS = [
+  'inT','inP1','inP2','inP','inV1','inV2','inN','inT2',
+  'inVcor','inT1cor','inT2cor','inP1cor','inP2cor','inPext'
+];
+
+// Borra todos los campos de datos (excepto el que se está editando, si se indica)
+function clearAllDataInputs(exceptId) {
+  DATA_INPUT_IDS.forEach(id => {
+    if (id !== exceptId) document.getElementById(id).value = '';
+  });
+}
+
+// Vuelve el panel de resultados/gráficas a su estado inicial (sin cálculo)
+function resetCalculationState() {
+  lastResult = null;
+
+  showLog([
+    { text: 'Los datos fueron modificados. Ingrese nuevamente todos los valores y presione Calcular.', cls: 'log-warn' },
+    { text: 'Nota: debe ingresar siempre las constantes del proceso (T, P, V), n (moles) y al menos 2 campos adicionales.', cls: 'log-warn' },
+  ]);
+
+  document.getElementById('statesRow').style.display = 'none';
+  document.getElementById('thermoTitle').textContent = 'Variables Termodinámicas';
+  document.getElementById('thermoGrid').innerHTML = `
+    <div class="placeholder" style="grid-column:span 2">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+      </svg>
+      Calcule para ver resultados
+    </div>
+  `;
+
+  const chart = document.getElementById('chartCanvas');
+  chart.getContext('2d').clearRect(0, 0, chart.width, chart.height);
+  ['piston1', 'piston2'].forEach(id => {
+    const c = document.getElementById(id);
+    c.getContext('2d').clearRect(0, 0, c.width, c.height);
+  });
+}
+
+// Si ya había un resultado calculado y el usuario edita un dato, se borra el resto
+// para evitar mezclar valores de cálculos distintos.
+function onDataInputEdited(changedId) {
+  if (!lastResult) return;
+  clearAllDataInputs(changedId);
+  resetCalculationState();
+}
+
 // ===== UI STATE =====
 function onProcesoChange() {
+  if (lastResult) {
+    clearAllDataInputs(null);
+    resetCalculationState();
+  }
+
   const p = document.getElementById('selectProceso').value;
   const labels = {
     iso_rev:     'Isotérmico Reversible',
@@ -110,9 +165,28 @@ function onProcesoChange() {
 
   // Alternar el selector de gas: 17 gases normales vs. mono/di/triatómico (adiabático)
   setGasSelectorMode(isAdiab);
+  onGasChange();
 }
 
-function onGasChange() {}
+function onGasChange() {
+  if (lastResult) {
+    clearAllDataInputs(null);
+    resetCalculationState();
+  }
+
+  const proc    = document.getElementById('selectProceso').value;
+  const isAdiab = (proc === 'adiab_rev' || proc === 'adiab_irrev');
+  const gasKey  = document.getElementById('selectGas').value;
+  const showOtro = isAdiab && gasKey === 'otro';
+  document.getElementById('groupGasOtro').style.display = showOtro ? '' : 'none';
+}
+
+function onGasOtroChange() {
+  if (lastResult) {
+    clearAllDataInputs(null);
+    resetCalculationState();
+  }
+}
 
 // ===== SELECTOR DE GAS: normal vs. adiabático =====
 let lastNormalGas = 'H2';
@@ -174,7 +248,6 @@ function calcular() {
   const proc    = document.getElementById('selectProceso').value;
   const gasKey  = document.getElementById('selectGas').value;
   const isAdiab = (proc === 'adiab_rev' || proc === 'adiab_irrev');
-  const gas     = isAdiab ? ADIABATIC_GAS_DATA[gasKey] : GAS_DATA[gasKey];
 
   let T    = v('inT'),  P1 = v('inP1'), P2 = v('inP2');
   let V1   = v('inV1'), V2 = v('inV2'), n  = v('inN');
@@ -182,6 +255,24 @@ function calcular() {
   let lines = [];
 
   function addLine(text, cls = '') { lines.push({ text, cls }); }
+
+  // ---- CONSTRUIR OBJETO GAS ----
+  let gas;
+  if (isAdiab) {
+    if (gasKey === 'otro') {
+      // Gas específico: se calculan Cp/Cv constantes evaluados en T1 (T)
+      if (!T) { showLog([{ text: 'Error: ingrese T1 (K) para calcular Cp y Cv del gas seleccionado.', cls: 'log-err' }]); return; }
+      const realKey = document.getElementById('selectGasOtro').value;
+      const realGas = GAS_DATA[realKey];
+      const CvCalc  = Cv_T(realGas, T);
+      const CpCalc  = Cp_T(realGas, T);
+      gas = { nombre: realGas.nombre + ' (Cp/Cv evaluados en T1)', Cv: CvCalc, Cp: CpCalc };
+    } else {
+      gas = ADIABATIC_GAS_DATA[gasKey];
+    }
+  } else {
+    gas = GAS_DATA[gasKey];
+  }
 
   // ---- ISOTÉRMICO REVERSIBLE ----
   if (proc === 'iso_rev') {
@@ -763,5 +854,8 @@ function drawPiston(canvasId, V, T, proc, isInitial) {
 }
 
 // ===== INIT =====
+DATA_INPUT_IDS.forEach(id => {
+  document.getElementById(id).addEventListener('input', () => onDataInputEdited(id));
+});
 onProcesoChange();
 window.addEventListener('resize', () => { if (lastResult) drawChart(); });
