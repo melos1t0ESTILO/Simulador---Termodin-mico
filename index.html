@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>7 Simulador de Procesos Termodinámicos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header>
+  <div class="header-icon">⚗️</div>
+  <div>
+    <h1>Simulador de Procesos Termodinámicos</h1>
+    <p>Gases ideales · Procesos Isotérmico, Isobárico, Isocórico y Adiabático</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ===== COLUMNA IZQUIERDA: ENTRADAS ===== -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">⚙ Configuración</div>
+      <div class="panel-body">
+
+        <!-- Selectores de proceso y gas -->
+        <div class="select-row">
+          <div class="field-group">
+            <label>Proceso</label>
+            <select id="selectProceso" onchange="onProcesoChange()">
+              <option value="iso_rev">Isotérmico Reversible</option>
+              <option value="iso_irrev">Isotérmico Irreversible</option>
+              <option value="isobar">Isobárico</option>
+              <option value="isocor">Isocórico</option>
+              <option value="adiab_rev">Adiabático Reversible</option>
+              <option value="adiab_irrev">Adiabático Irreversible</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label>Gas</label>
+            <select id="selectGas" onchange="onGasChange()">
+              <option value="H2">H₂ (g)</option>
+              <option value="O2">O₂ (g)</option>
+              <option value="Cl2">Cl₂ (g)</option>
+              <option value="Br2">Br₂ (g)</option>
+              <option value="N2">N₂ (g)</option>
+              <option value="H2O">H₂O (g)</option>
+              <option value="CO">CO (g)</option>
+              <option value="CO2">CO₂ (g)</option>
+              <option value="NH3">NH₃ (g)</option>
+              <option value="SO2">SO₂ (g)</option>
+              <option value="SO3">SO₃ (g)</option>
+              <option value="H2S">H₂S (g)</option>
+              <option value="HCl">HCl (g)</option>
+              <option value="CH4">CH₄ (g)</option>
+              <option value="C2H6">C₂H₆ (g)</option>
+              <option value="C3H8">C₃H₈ (g)</option>
+              <option value="C6H6">C₆H₆ (g)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Selector de gas específico (solo aparece si en adiabático se elige "Otro") -->
+        <div class="field-group" id="groupGasOtro" style="display:none; margin-bottom:18px;">
+          <label>Gas específico</label>
+          <select id="selectGasOtro" onchange="onGasOtroChange()">
+            <option value="H2">H₂ (g)</option>
+            <option value="O2">O₂ (g)</option>
+            <option value="Cl2">Cl₂ (g)</option>
+            <option value="Br2">Br₂ (g)</option>
+            <option value="N2">N₂ (g)</option>
+            <option value="H2O">H₂O (g)</option>
+            <option value="CO">CO (g)</option>
+            <option value="CO2">CO₂ (g)</option>
+            <option value="NH3">NH₃ (g)</option>
+            <option value="SO2">SO₂ (g)</option>
+            <option value="SO3">SO₃ (g)</option>
+            <option value="H2S">H₂S (g)</option>
+            <option value="HCl">HCl (g)</option>
+            <option value="CH4">CH₄ (g)</option>
+            <option value="C2H6">C₂H₆ (g)</option>
+            <option value="C3H8">C₃H₈ (g)</option>
+            <option value="C6H6">C₆H₆ (g)</option>
+          </select>
+        </div>
+
+        <!-- Campos de datos -->
+
+        <div class="inputs-section">
+          <div class="section-title" id="datosTitle">Datos para Isotérmico Reversible</div>
+          <div class="inputs-grid">
+            <!-- Campos compartidos: Isotérmico rev/irrev -->
+            <div class="field-group" id="groupT">
+              <label>T (K)</label>
+              <input type="number" id="inT" placeholder="ej. 300" step="any">
+            </div>
+            <div class="field-group" id="groupP1">
+              <label>P1 (atm)</label>
+              <input type="number" id="inP1" placeholder="ej. 1" step="any">
+            </div>
+            <div class="field-group" id="groupP2">
+              <label>P2 (atm)</label>
+              <input type="number" id="inP2" placeholder="ej. 56" step="any">
+            </div>
+            <div class="field-group" id="groupP" style="display:none">
+              <label>P (atm)</label>
+              <input type="number" id="inP" placeholder="ej. 3" step="any">
+            </div>
+            <div class="field-group" id="groupV1">
+              <label>V1 (L)</label>
+              <input type="number" id="inV1" placeholder="calculado" step="any">
+            </div>
+            <div class="field-group" id="groupV2">
+              <label>V2 (L)</label>
+              <input type="number" id="inV2" placeholder="calculado" step="any">
+            </div>
+            <div class="field-group">
+              <label>n (moles)</label>
+              <input type="number" id="inN" placeholder="ej. 15" step="any">
+            </div>
+            <!-- Solo para Isobárico -->
+            <div class="field-group" id="groupT2" style="display:none">
+              <label>T2 (K)</label>
+              <input type="number" id="inT2" placeholder="ej. 600" step="any">
+            </div>
+            <!-- Campos exclusivos para Isocórico -->
+            <div class="field-group" id="groupVcor" style="display:none">
+              <label>V (L)</label>
+              <input type="number" id="inVcor" placeholder="ej. 10" step="any">
+            </div>
+            <div class="field-group" id="groupT1cor" style="display:none">
+              <label>T1 (K)</label>
+              <input type="number" id="inT1cor" placeholder="ej. 300" step="any">
+            </div>
+            <div class="field-group" id="groupT2cor" style="display:none">
+              <label>T2 (K)</label>
+              <input type="number" id="inT2cor" placeholder="ej. 600" step="any">
+            </div>
+            <div class="field-group" id="groupP1cor" style="display:none">
+              <label>P1 (atm)</label>
+              <input type="number" id="inP1cor" placeholder="calculado" step="any">
+            </div>
+            <div class="field-group" id="groupP2cor" style="display:none">
+              <label>P2 (atm)</label>
+              <input type="number" id="inP2cor" placeholder="calculado" step="any">
+            </div>
+            <!-- P ext oculto: para iso_irrev se usa P2 como Pext -->
+            <div class="field-group" id="groupPext" style="display:none">
+              <label>P ext (atm)</label>
+              <input type="number" id="inPext" placeholder="P externo" step="any">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-calc" onclick="calcular()">▶ Calcular</button>
+
+        <!-- Log de resultados -->
+        <div class="results-log" id="resultsLog"><span class="log-warn">Ingrese los datos y presione Calcular.</span>
+<span class="log-warn">Nota: debe ingresar siempre las constantes del proceso (T, P, V), n (moles) y al menos 2 campos adicionales.</span></div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== COLUMNA DERECHA: VISUALIZACIÓN ===== -->
+  <div class="right-col">
+
+    <!-- Gráfica P-V -->
+    <div class="panel">
+      <div class="panel-header">
+        📈 Diagrama P–V
+        <span class="process-tag" id="tagProceso">Isotérmico Reversible</span>
+      </div>
+      <div class="chart-wrapper">
+        <canvas id="chartCanvas"></canvas>
+      </div>
+    </div>
+
+    <!-- Pistones + Variables Termodinámicas -->
+    <div class="panel">
+      <div class="panel-header">🔬 Visualización y Variables Termodinámicas</div>
+
+      <!-- Estados inicial y final -->
+      <div class="states-row" id="statesRow" style="display:none">
+        <div class="state-box">
+          <h4>Estado Inicial</h4>
+          <div class="sv" id="state1Text"></div>
+        </div>
+        <div class="state-box">
+          <h4>Estado Final</h4>
+          <div class="sv" id="state2Text"></div>
+        </div>
+      </div>
+
+      <!-- Pistones y tarjetas termodinámicas -->
+      <div class="piston-section">
+        <div class="piston-wrap">
+          <div class="piston-label">Estado Inicial</div>
+          <canvas class="piston-canvas" id="piston1" width="130" height="200"></canvas>
+        </div>
+
+        <div class="thermo-panel">
+          <h3 id="thermoTitle">Variables Termodinámicas</h3>
+          <div class="thermo-grid" id="thermoGrid">
+            <div class="placeholder" style="grid-column:span 2">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/>
+              </svg>
+              Calcule para ver resultados
+            </div>
+          </div>
+        </div>
+
+        <div class="piston-wrap">
+          <div class="piston-label">Estado Final</div>
+          <canvas class="piston-canvas" id="piston2" width="130" height="200"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
