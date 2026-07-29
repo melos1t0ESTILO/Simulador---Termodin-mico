@@ -61,7 +61,32 @@
           </div>
         </div>
 
+        <!-- Selector de gas específico (solo aparece si en adiabático se elige "Otro") -->
+        <div class="field-group" id="groupGasOtro" style="display:none; margin-bottom:18px;">
+          <label>Gas específico</label>
+          <select id="selectGasOtro" onchange="onGasOtroChange()">
+            <option value="H2">H₂ (g)</option>
+            <option value="O2">O₂ (g)</option>
+            <option value="Cl2">Cl₂ (g)</option>
+            <option value="Br2">Br₂ (g)</option>
+            <option value="N2">N₂ (g)</option>
+            <option value="H2O">H₂O (g)</option>
+            <option value="CO">CO (g)</option>
+            <option value="CO2">CO₂ (g)</option>
+            <option value="NH3">NH₃ (g)</option>
+            <option value="SO2">SO₂ (g)</option>
+            <option value="SO3">SO₃ (g)</option>
+            <option value="H2S">H₂S (g)</option>
+            <option value="HCl">HCl (g)</option>
+            <option value="CH4">CH₄ (g)</option>
+            <option value="C2H6">C₂H₆ (g)</option>
+            <option value="C3H8">C₃H₈ (g)</option>
+            <option value="C6H6">C₆H₆ (g)</option>
+          </select>
+        </div>
+
         <!-- Campos de datos -->
+
         <div class="inputs-section">
           <div class="section-title" id="datosTitle">Datos para Isotérmico Reversible</div>
           <div class="inputs-grid">
@@ -201,3 +226,4 @@
 <script src="script.js"></script>
 </body>
 </html>
+
